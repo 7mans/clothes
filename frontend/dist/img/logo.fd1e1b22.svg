@@ -1,0 +1,11 @@
+<!--
+  @description 项目 Logo 占位图标 (SVG)
+-->
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="120" rx="24" fill="#111419"/>
+  <circle cx="60" cy="60" r="40" stroke="#3A7AFE" stroke-width="6"/>
+  <path d="M40 70 C50 50, 70 50, 80 70" stroke="#3A7AFE" stroke-width="6" fill="none"/>
+  <circle cx="50" cy="52" r="4" fill="#3A7AFE"/>
+  <circle cx="70" cy="52" r="4" fill="#3A7AFE"/>
+  <text x="60" y="100" text-anchor="middle" font-size="14" fill="#e6e6e6" font-family="Arial, sans-serif">AI2Cloth</text>
+</svg>
