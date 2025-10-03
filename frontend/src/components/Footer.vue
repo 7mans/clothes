@@ -23,7 +23,6 @@
       <nav class="footer-nav">
         <router-link to="/" class="footer-link">首页</router-link>
         <router-link to="/analysis" class="footer-link">开始分析</router-link>
-        <router-link to="/shop" class="footer-link">商店</router-link>
         <a href="#pricing" class="footer-link">定价</a>
       </nav>
 

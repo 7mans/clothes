@@ -21,9 +21,8 @@
 
         <!-- Navigation -->
         <nav class="nav">
-          <router-link to="/" class="nav-link">{{ $t('header.home') }}</router-link>
+          <router-link to="/" class="nav-link" exact>{{ $t('header.home') }}</router-link>
           <router-link to="/analysis" class="nav-link">{{ $t('header.analysis') }}</router-link>
-          <router-link to="/shop" class="nav-link">{{ $t('header.shop') }}</router-link>
           <a href="#pricing" class="nav-link">{{ $t('header.pricing') }}</a>
         </nav>
 
@@ -61,9 +60,8 @@
 
       <!-- Mobile Menu -->
       <div class="mobile-menu" :class="{ active: mobileMenuOpen }">
-        <router-link to="/" class="mobile-nav-link" @click="closeMobileMenu">{{ $t('header.home') }}</router-link>
+        <router-link to="/" class="mobile-nav-link" @click="closeMobileMenu" exact>{{ $t('header.home') }}</router-link>
         <router-link to="/analysis" class="mobile-nav-link" @click="closeMobileMenu">{{ $t('header.analysis') }}</router-link>
-        <router-link to="/shop" class="mobile-nav-link" @click="closeMobileMenu">{{ $t('header.shop') }}</router-link>
         <a href="#pricing" class="mobile-nav-link" @click="closeMobileMenu">{{ $t('header.pricing') }}</a>
         <div class="mobile-actions">
           <div class="mobile-language-selector">
@@ -195,11 +193,25 @@ export default {
   
   &:hover {
     color: var(--color-text-primary);
+    background: var(--color-bg-hover);
   }
   
-  &.router-link-active {
+  &.router-link-active, &.router-link-exact-active {
     color: var(--color-accent);
     font-weight: var(--font-weight-semibold);
+    background: var(--color-accent-light);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 2px;
+      background: var(--color-accent);
+      border-radius: 1px;
+    }
   }
 }
 
@@ -289,9 +301,27 @@ export default {
   font-weight: var(--font-weight-medium);
   border-bottom: 1px solid var(--color-border);
   transition: all var(--transition-normal);
+  position: relative;
   
-  &:hover, &.router-link-active {
+  &:hover {
+    color: var(--color-text-primary);
+  }
+  
+  &.router-link-active, &.router-link-exact-active {
     color: var(--color-accent);
+    font-weight: var(--font-weight-semibold);
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: var(--color-accent);
+      border-radius: 2px;
+    }
   }
   
   &:last-of-type {

@@ -11,47 +11,64 @@
     
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <div class="analysis-container">
+      <div v-if="!analysisResult" class="analysis-container">
         <h1 class="page-title">{{ $t('analysis.title') }}</h1>
         <p class="page-subtitle">{{ $t('analysis.subtitle') }}</p>
         
         <!-- 分析工具容器 -->
-        <div v-if="!uploadedImage && !analyzing" class="analysis-tool-container">
+        <div class="analysis-tool-container">
           <!-- 上传区域 -->
           <div class="upload-area">
             <div 
               class="upload-zone" 
-              :class="{ 'drag-over': dragOver }"
+              :class="{ 'drag-over': dragOver, 'has-image': uploadedImage }"
               @drop="handleDrop"
               @dragover.prevent="dragOver = true"
               @dragleave="dragOver = false"
-              @click="triggerFileInput"
+              @click="!uploadedImage ? triggerFileInput() : null"
             >
-              <div class="upload-content">
+              <!-- 未上传图片时显示上传提示 -->
+              <div v-if="!uploadedImage" class="upload-content">
                 <div class="upload-icon">
                   <i class="fas fa-cloud-upload-alt"></i>
                 </div>
                 <h3>{{ $t('analysis.upload.title') }}</h3>
                 <p>{{ $t('analysis.upload.subtitle') }}</p>
               </div>
+              
+              <!-- 已上传图片时显示图片预览 -->
+              <div v-else class="image-preview-content">
+                <img :src="uploadedImage" alt="上传的图片" class="preview-image">
+                <button v-if="!analyzing" class="remove-image" @click.stop="removeImage">
+                  <i class="fas fa-times"></i>
+                </button>
+                
+                <!-- 分析中状态 -->
+                <div v-if="analyzing" class="analyzing-overlay">
+                  <div class="loading-spinner"></div>
+                  <h3>{{ $t('analysis.analyzing.title') }}</h3>
+                  <p>{{ $t('analysis.analyzing.subtitle') }}</p>
+                </div>
+              </div>
             </div>
             <input 
               ref="fileInput" 
               type="file" 
+              placeholder="描述您的分析需求，获得更精准的建议"
               accept="image/*" 
               @change="handleFileSelect" 
               style="display: none"
             >
           </div>
           
-          <!-- 搜索框样式的输入区域 -->
-          <div class="search-container">
+          <!-- 搜索框样式的输入区域 - 只在没有上传图片时显示 -->
+          <div v-if="!uploadedImage" class="search-container">
             <div class="search-box">
               <input 
                 v-model="analysisDescription"
                 type="text" 
                 class="search-input"
-                placeholder="请输入您想要分析的具体内容，如：搭配建议、风格分析、颜色搭配等..."
+                placeholder="描述您的分析需求，获得更精准的建议"
                 maxlength="200"
                 @keyup.enter="triggerFileInput"
               >
@@ -60,70 +77,49 @@
                 @click="triggerFileInput"
                 title="开始AI分析"
               >
-                <i class="fas fa-search"></i>
+                开始分析
               </button>
             </div>
-            <div class="search-hint">可选：描述您的分析需求，获得更精准的建议</div>
           </div>
-        </div>
-        
-        <!-- 图片预览和分析状态 -->
-        <div v-if="uploadedImage" class="image-preview-section">
-          <div class="analysis-tool-container">
-            <div class="image-container">
-              <img :src="uploadedImage" alt="上传的图片" class="preview-image">
-              <button v-if="!analyzing" class="remove-image" @click="removeImage">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-            
-            <!-- 分析中状态 -->
-            <div v-if="analyzing" class="analyzing-status">
-              <div class="loading-spinner"></div>
-              <h3>{{ $t('analysis.analyzing.title') }}</h3>
-              <p>{{ $t('analysis.analyzing.subtitle') }}</p>
-            </div>
-            
-            <!-- 输入框和分析按钮 -->
-            <div v-if="!analyzing && !analysisResult" class="analysis-controls">
-              <!-- 搜索框样式的输入区域 -->
-              <div class="search-container">
-                <div class="search-box">
-                  <input 
-                    v-model="analysisDescription"
-                    type="text" 
-                    class="search-input"
-                    placeholder="请输入您想要分析的具体内容，如：搭配建议、风格分析、颜色搭配等..."
-                    maxlength="200"
-                    @keyup.enter="startAnalysis"
-                  >
-                  <button 
-                    class="search-button"
-                    @click="startAnalysis"
-                    title="开始AI分析"
-                  >
-                    <i class="fas fa-search"></i>
-                  </button>
-                </div>
-                <div class="search-hint">可选：描述您的分析需求，获得更精准的建议</div>
+          
+          <!-- 上传图片后的分析控制区域 -->
+          <div v-if="uploadedImage && !analyzing && !analysisResult" class="analysis-controls">
+            <div class="search-container">
+              <div class="search-box">
+                <input 
+                  v-model="analysisDescription"
+                  type="text" 
+                  class="search-input"
+                  placeholder="描述您的分析需求，获得更精准的建议"
+                  maxlength="200"
+                  @keyup.enter="startAnalysis"
+                >
+                <button 
+                  class="search-button"
+                  @click="startAnalysis"
+                  title="开始AI分析"
+                >
+                  开始分析
+                </button>
               </div>
             </div>
           </div>
         </div>
-        
-        <!-- 分析结果 -->
-        <div v-if="analysisResult" class="analysis-result">
-          <AnalysisResult :result="analysisResult" :image="uploadedImage" />
-        </div>
       </div>
+      
+      <!-- 分析结果 -->
+      <AnalysisResult
+        v-if="analysisResult" 
+        :uploaded-image="uploadedImage" 
+        @restart="restartAnalysis" 
+      />
     </div>
   </div>
 </template>
 
 <script>
 import Header from '@/components/Header.vue'
-import AnalysisResult from '@/components/AnalysisResult.vue'
-import { doubaoAnalysisService } from '@/services/doubaoService'
+import AnalysisResult from '../components/AnalysisResult.vue';
 
 export default {
   name: 'Analysis',
@@ -205,8 +201,10 @@ export default {
       this.error = null
       
       try {
-        const result = await doubaoAnalysisService.analyzeImage(this.uploadedFile)
-        this.analysisResult = result
+        // 模拟分析过程
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 设置分析结果为true，显示报告
+        this.analysisResult = true
       } catch (error) {
         console.error('分析失败:', error)
         this.error = this.$t('analysis.errors.analysisFailed')
@@ -214,6 +212,15 @@ export default {
       } finally {
         this.analyzing = false
       }
+    },
+    
+    restartAnalysis() {
+      this.uploadedImage = null
+      this.uploadedFile = null
+      this.analysisResult = null
+      this.analyzing = false
+      this.error = null
+      this.analysisDescription = ''
     }
   }
 }
@@ -222,11 +229,11 @@ export default {
 <style lang="scss" scoped>
 .analysis-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  color: #1a1a1a;
+  background: var(--gradient-hero, linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%));
+  color: var(--color-text-primary, #1a1a1a);
   position: relative;
   overflow-x: hidden;
-  
+
   // 添加动态背景效果
   &::before {
     content: '';
@@ -256,6 +263,8 @@ export default {
 }
 
 .back-button {
+  width: 150px;
+  height: 60px;
   position: fixed;
   top: 80px;
   left: 24px;
@@ -264,7 +273,7 @@ export default {
   gap: 8px;
   color: #666666;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   padding: 10px 16px;
   border-radius: 24px;
@@ -296,8 +305,8 @@ export default {
   padding-top: 80px;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column; /* 确保内容垂直排列 */
+  align-items: center; /* 水平居中 */
   position: relative;
   z-index: 1;
 }
@@ -305,14 +314,14 @@ export default {
 .analysis-container {
   max-width: 900px;
   width: 100%;
-  padding: 60px 24px;
+  padding: 20px 24px 60px; /* 减小顶部内边距 */
   text-align: center;
 }
 
 .page-title {
-  font-size: 48px;
+  font-size: 32px;
   font-weight: 800;
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   background: linear-gradient(135deg, #1a1a1a 0%, #374151 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -322,15 +331,15 @@ export default {
 }
 
 .page-subtitle {
-  font-size: 18px;
+  font-size: 16px;
   color: #666666;
-  margin: 0 0 80px 0;
+  margin: 0 0 50px 0;
   font-weight: 400;
   line-height: 1.6;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 80px;
+  margin-bottom: 50px;
 }
 
 // 分析工具容器样式
@@ -379,7 +388,7 @@ export default {
 .upload-zone {
   border: 2px dashed #d1d5db;
   border-radius: 20px;
-  padding: 60px 40px;
+  padding: 80px 40px;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   cursor: pointer;
@@ -387,6 +396,10 @@ export default {
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &::before {
     content: '';
@@ -407,6 +420,17 @@ export default {
     
     &::before {
       left: 100%;
+    }
+  }
+  
+  &.has-image {
+    padding: 20px;
+    border: 2px solid #3b82f6;
+    background: rgba(255, 255, 255, 0.9);
+    cursor: default;
+    
+    &:hover {
+      transform: none;
     }
   }
 }
@@ -439,10 +463,10 @@ export default {
 
 // 百度搜索样式的搜索容器
 .search-container {
-  margin: 30px 0;
+  margin: 50px 0 30px;
   position: relative;
   z-index: 1;
-  max-width: 600px;
+  width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -451,62 +475,63 @@ export default {
   display: flex;
   align-items: center;
   background: #ffffff;
-  border: 2px solid #c4c7ce;
-  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 50px; // 更圆润的边框
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+  height: 54px;
   
   &:hover {
-    border-color: #4e6ef2;
-    box-shadow: 0 2px 15px rgba(78, 110, 242, 0.15);
+    border-color: #4285f4;
+    box-shadow: 0 4px 25px rgba(66, 133, 244, 0.15);
   }
   
   &:focus-within {
-    border-color: #4e6ef2;
-    box-shadow: 0 2px 15px rgba(78, 110, 242, 0.2);
+    border-color: #4285f4;
+    box-shadow: 0 4px 25px rgba(66, 133, 244, 0.2);
   }
 }
 
 .search-input {
   flex: 1;
-  padding: 16px 20px;
+  padding: 0 24px;
   border: none;
   outline: none;
   font-size: 16px;
-  color: #222;
+  color: #333;
   background: transparent;
+  height: 100%;
   
   &::placeholder {
-    color: #999;
-    font-size: 14px;
+    color: #9aa0a6;
+    font-size: 16px;
   }
 }
 
 .search-button {
-  background: #4e6ef2;
+  background: #4285f4;
   border: none;
-  padding: 16px 20px;
+  padding: 0 24px;
   cursor: pointer;
   color: white;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 60px;
+  height: 100%;
+  border-radius: 0 50px 50px 0;
+  min-width: 100px;
   
   &:hover {
-    background: #3b5bdb;
+    background: #3367d6;
   }
   
   &:active {
-    background: #364fc7;
+    background: #2b5ce6;
     transform: scale(0.98);
-  }
-  
-  i {
-    font-size: 16px;
   }
 }
 
@@ -517,85 +542,88 @@ export default {
   text-align: center;
 }
 
+// 图片预览内容样式
+.image-preview-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .preview-image {
+    width: 100%;
+    height: auto;
+    max-height: 350px;
+    object-fit: contain;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  .remove-image {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    z-index: 10;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    i {
+      font-size: 14px;
+    }
+  }
+  
+  .analyzing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 20px 0 8px 0;
+      color: #1a1a1a;
+    }
+    
+    p {
+      font-size: 14px;
+      color: #666666;
+      margin: 0;
+    }
+  }
+}
+
 // 分析控制区域
 .analysis-controls {
   position: relative;
   z-index: 1;
-}
-
-.image-preview-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 40px;
-  
-  .analysis-tool-container {
-    width: 100%;
-    max-width: 600px;
-  }
-}
-
-.image-container {
-  position: relative;
-  max-width: 500px;
-  width: 100%;
-}
-
-.preview-image {
-  width: 100%;
-  height: auto;
-  max-height: 600px;
-  object-fit: contain;
-  border-radius: 20px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.remove-image {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.7);
-  border: none;
-  border-radius: 50%;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.9);
-    transform: scale(1.1);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  }
-}
-
-.analyzing-status {
-  text-align: center;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  
-  h3 {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 24px 0 12px 0;
-    color: #1a1a1a;
-  }
-  
-  p {
-    font-size: 16px;
-    color: #666666;
-    margin: 0;
-  }
+  margin-top: 20px;
 }
 
 .loading-spinner {
@@ -654,12 +682,7 @@ export default {
 
 .analysis-result {
   margin-top: 60px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 24px;
-  padding: 40px;
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  text-align: left;
 }
 
 // 响应式设计
@@ -709,29 +732,28 @@ export default {
   
   .search-container {
     margin: 25px 0;
+    max-width: 90%;
   }
   
   .search-box {
-    border-radius: 8px;
+    border-radius: 40px;
+    height: 48px;
   }
   
   .search-input {
-    padding: 14px 16px;
+    padding: 0 20px;
     font-size: 14px;
     
     &::placeholder {
-      font-size: 13px;
+      font-size: 14px;
     }
   }
   
   .search-button {
-    padding: 14px 16px;
-    min-width: 50px;
-    font-size: 14px;
-    
-    i {
-      font-size: 14px;
-    }
+    padding: 0 20px;
+    min-width: 90px;
+    font-size: 13px;
+    border-radius: 0 40px 40px 0;
   }
   
   .search-hint {
@@ -793,29 +815,28 @@ export default {
   
   .search-container {
     margin: 20px 0;
+    max-width: 95%;
   }
   
   .search-box {
-    border-radius: 6px;
+    border-radius: 35px;
+    height: 44px;
   }
   
   .search-input {
-    padding: 12px 14px;
+    padding: 0 18px;
     font-size: 13px;
     
     &::placeholder {
-      font-size: 12px;
+      font-size: 13px;
     }
   }
   
   .search-button {
-    padding: 12px 14px;
-    min-width: 45px;
-    font-size: 13px;
-    
-    i {
-      font-size: 13px;
-    }
+    padding: 0 18px;
+    min-width: 80px;
+    font-size: 12px;
+    border-radius: 0 35px 35px 0;
   }
   
   .search-hint {

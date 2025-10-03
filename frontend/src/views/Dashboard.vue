@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <!-- Header -->
-    <Header />
+    <Header/>
     
     <!-- Hero Section -->
     <section class="hero-section">
@@ -106,7 +106,7 @@
     </section>
 
     <!-- Footer -->
-    <Footer />
+    <Footer/>
 
 
   </div>
